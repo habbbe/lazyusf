@@ -56,6 +56,7 @@ FLAC__StreamEncoder * flacEncoder=NULL; // pointer to flac encoder
 uint32_t SampleRate = 0;
 
 int8_t playingback = 0;
+int8_t stdoutput = 0;
 #ifdef PLAYBACK_SUPPORT
 ao_device *device;
 #endif // PLAYBACK_SUPPORT
@@ -151,24 +152,24 @@ void OpenSound(void)
 
             /* set metadata */
             if(
-                (metadata[0] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_VORBIS_COMMENT)) == NULL ||
-                (metadata[1] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING)) == NULL ||
-                /* there are many tag (vorbiscomment) functions but these are convenient for this particular use: */
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUM", game) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) || /* copy=false: let metadata object take control of entry's allocated string */
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUMARTIST", artist) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ARTIST", artist) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "COPYRIGHT", copyright) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "DATE", year) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "GENRE", genre) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
-                !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "TITLE", title) ||
-                !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false)
-            )
+                    (metadata[0] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_VORBIS_COMMENT)) == NULL ||
+                    (metadata[1] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING)) == NULL ||
+                    /* there are many tag (vorbiscomment) functions but these are convenient for this particular use: */
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUM", game) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) || /* copy=false: let metadata object take control of entry's allocated string */
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUMARTIST", artist) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ARTIST", artist) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "COPYRIGHT", copyright) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "DATE", year) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "GENRE", genre) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false) ||
+                    !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "TITLE", title) ||
+                    !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false)
+              )
             {
                 fprintf(stderr, "ERROR: out of memory or tag error\n");
             }
@@ -183,14 +184,21 @@ void OpenSound(void)
     }
 #endif // FLAC_SUPPORT
 #ifdef PLAYBACK_SUPPORT
-    if(playingback)
+    if(playingback || stdoutput)
     {
         /* -- Initialize libao -- */
         ao_initialize();
 
         /* -- Setup for default driver -- */
         int default_driver;
-        default_driver = ao_default_driver_id();
+        ao_option *ao_options;
+        if (stdoutput) {
+            ao_options = NULL;
+            default_driver = ao_driver_id("au");
+            ao_append_option (&ao_options, "byteorder", "little");
+        } else {
+            default_driver = ao_default_driver_id();
+        }
 
         ao_sample_format format;
         memset(&format, 0, sizeof(format));
@@ -199,8 +207,17 @@ void OpenSound(void)
         format.rate = SampleRate;
         format.byte_format = AO_FMT_BIG;
 
+        if (stdoutput) {
+            
+        }
+
         /* -- Open driver -- */
-        device = ao_open_live(default_driver, &format, NULL /* no options */);
+        if (stdoutput) {
+            device = ao_open_file(default_driver, "-", 1, &format, ao_options);
+        } else {
+            device = ao_open_live(default_driver, &format, NULL /* no options */);
+        }
+
         if (device == NULL)
         {
             fprintf(stderr, "Error opening device.\n");
@@ -211,7 +228,8 @@ void OpenSound(void)
     }
 #endif // PLAYBACK_SUPPORT
 
-    printf("Time [min]:\n");
+    if (!stdoutput)
+        printf("Time [min]:\n");
 }
 
 void CloseSound(void)
@@ -231,7 +249,7 @@ void CloseSound(void)
     }
 #endif // FLAC_SUPPORT
 #ifdef PLAYBACK_SUPPORT
-    if(playingback)
+    if(playingback || stdoutput)
     {
         /* -- Close and shutdown libao -- */
         ao_close(device);
@@ -307,7 +325,7 @@ void AddBuffer(unsigned char *buf, unsigned int length)
         buf[i+1] = byte1;
     }
 #ifdef PLAYBACK_SUPPORT
-    if(playingback)
+    if(playingback || stdoutput)
     {
         ao_play(device, (char*)buf, length);
     }
@@ -327,7 +345,8 @@ void AddBuffer(unsigned char *buf, unsigned int length)
 #endif // FLAC_SUPPORT
     {
         // write raw pcm to au file
-        unsigned int status = write(fd, buf, length);
+        unsigned int status;
+        status = write(fd, buf, length);
         if (status != length)
         {
             perror("wrote wrong number of bytes\n");
@@ -335,12 +354,14 @@ void AddBuffer(unsigned char *buf, unsigned int length)
     }
 
     play_time += (((double)(length >> 2) / (double)SampleRate) * 1000.0);
-    printf("\r%f",(play_time/60000));
+    if(!stdoutput)
+        printf("\r%f",(play_time/60000));
 
     if((!(track_time >> (sizeof(uint32_t)*8 -1))) && (play_time > (track_time + fade_time)))
     {
         cpu_running = 0;
-        printf("\n");
+        if (!stdoutput)
+            printf("\n");
     }
 }
 

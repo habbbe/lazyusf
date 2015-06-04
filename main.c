@@ -172,6 +172,7 @@ static const struct option long_options[] =
     {"forever",         no_argument,       NULL, 'e'},
     {"double",          no_argument,       NULL, 'd'},
     {"help",            no_argument,       NULL, 'h'},
+    {"stdout",            no_argument,       NULL, 's'},
     {0, 0, 0, 0}
 };
 
@@ -197,6 +198,7 @@ void usage(char progName[])
     printf("\t \t--%s SEC\t\t set fading duration to SEC seconds\n",long_options[4].name);
     printf("\t \t--%s\t\t double the playing length read from usf\n",long_options[9].name);
     printf("\t \t--%s\t\t use interpreter, slows down emulation; use it if recompiler (default) fails\n\n",long_options[7].name);
+    printf("\t \t--%s\t\t write raw output to stdout\n\n",long_options[11].name);
 
     puts("Available placeholders for output filename: (each placeholder should only appear once in your output filename)");
 
@@ -227,7 +229,7 @@ int main(int argc, char** argv)
     bool playForever = false, doublePlayLength = false;
 
     int ch;
-    while((ch = getopt_long(argc, argv, "o:f:rpiedh", long_options, &option_index)) != -1)
+    while((ch = getopt_long(argc, argv, "o:f:rpiedhs", long_options, &option_index)) != -1)
     {
         switch (ch)
         {
@@ -279,7 +281,9 @@ int main(int argc, char** argv)
             usage(argv[0]);
             return 0;
             break;
-
+        case 's':
+            stdoutput=1;
+            break;
         case '?':
             /* getopt_long already printed an error message. */
             break;
@@ -305,23 +309,26 @@ int main(int argc, char** argv)
 
         if(usf_init(filename))
         {
-            puts("");
-            printf("Game     : %s\n", game);
-            printf("Title    : %s\n", title);
-            printf("Artist   : %s\n", artist);
-            printf("Genre    : %s\n", genre);
-            printf("Copyright: %s\n", copyright);
-            printf("Year     : %s\n", year);
-            puts("");
-
+            if (!stdoutput) {
+                puts("");
+                printf("Game     : %s\n", game);
+                printf("Title    : %s\n", title);
+                printf("Artist   : %s\n", artist);
+                printf("Genre    : %s\n", genre);
+                printf("Copyright: %s\n", copyright);
+                printf("Year     : %s\n", year);
+                puts("");
+            }
             if(playForever)
             {
                 track_time |= 1 << (sizeof(uint32_t)*8 -1);
-                puts("Playing forever");
+                if (!stdoutput)
+                    puts("Playing forever");
             }
             else
             {
-                printf("Playing for %f min\n", track_time/1000.0/60.0);
+                if (!stdoutput)
+                    printf("Playing for %f min\n", track_time/1000.0/60.0);
             }
 
             if(doublePlayLength)
@@ -343,10 +350,11 @@ int main(int argc, char** argv)
                 strcat(filename,".au");
             }
 
-            puts("");
-            printf("enablecompare: %d\n", enablecompare);
-            printf("enableFIFOfull: %d\n\n", enableFIFOfull);
-
+            if(!stdoutput) {
+                puts("");
+                printf("enablecompare: %d\n", enablecompare);
+                printf("enableFIFOfull: %d\n\n", enableFIFOfull);
+            }
             if(!usf_play())
             {
                 printf("An Error occured while play.\n");

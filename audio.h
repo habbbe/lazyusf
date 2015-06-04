@@ -9,6 +9,7 @@ void CloseSound(void);
 
 extern int8_t useFlac;
 extern int8_t playingback;
+extern int8_t stdoutput;
 extern uint32_t SampleRate;
 
 #endif

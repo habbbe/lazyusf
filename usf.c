@@ -369,20 +369,22 @@ bool usf_play()
         {
             play_time = 0;
 
-            printf("Start Emulation using ");
-            if(CPU_Type==CPU_Interpreter && RSP_Cpu==CPU_Interpreter)
-            {
-                printf("Interpreter\n");
-            }
-            else if (CPU_Type==CPU_Recompiler && RSP_Cpu==CPU_Recompiler)
-            {
-                printf("Recompiler\n");
-            }
-            else
-            {
-                printf("different or unknown Main-CPU-Type and RSP-CPU-Type:\n");
-                printf("Main-CPU-Type: %d\n", CPU_Type);
-                printf("RSP-CPU-Type : %d\n", RSP_Cpu);
+            if (!stdoutput) {
+                printf("Start Emulation using ");
+                if(CPU_Type==CPU_Interpreter && RSP_Cpu==CPU_Interpreter)
+                {
+                    printf("Interpreter\n");
+                }
+                else if (CPU_Type==CPU_Recompiler && RSP_Cpu==CPU_Recompiler)
+                {
+                    printf("Recompiler\n");
+                }
+                else
+                {
+                    printf("different or unknown Main-CPU-Type and RSP-CPU-Type:\n");
+                    printf("Main-CPU-Type: %d\n", CPU_Type);
+                    printf("RSP-CPU-Type : %d\n", RSP_Cpu);
+                }
             }
 
             StartEmulationFromSave(savestatespace);
