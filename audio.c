@@ -207,10 +207,6 @@ void OpenSound(void)
         format.rate = SampleRate;
         format.byte_format = AO_FMT_BIG;
 
-        if (stdoutput) {
-            
-        }
-
         /* -- Open driver -- */
         if (stdoutput) {
             device = ao_open_file(default_driver, "-", 1, &format, ao_options);
